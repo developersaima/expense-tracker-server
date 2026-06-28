@@ -35,17 +35,34 @@ async function run() {
     });
     // Get expenses
     app.get("/expenses", async (req, res) => {
-      const expenses = await expensesCollection.find().toArray();
+      const db = client.db("expense-tracker");
+      const { category } = req.query;
+
+      let query = {};
+      if (category && category !== "All") {
+        query = { category };
+      }
+
+      const expenses = await db.collection("expenses").find(query).toArray();
       res.send(expenses);
     });
     // Update expense
     app.put("/expenses/:id", async (req, res) => {
-      const id = req.params.id;
-      const result = await expensesCollection.updateOne(
-        { _id: new ObjectId(id) },
-        { $set: req.body },
-      );
-      res.send(result);
+      try {
+        const id = req.params.id;
+
+        const { _id, ...updatedData } = req.body;
+
+        const result = await expensesCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedData },
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.error("Update Error:", error);
+        res.status(500).send({ message: "Failed to update expense", error });
+      }
     });
     // Delete expenses
     app.delete("/expenses/:id", async (req, res) => {
