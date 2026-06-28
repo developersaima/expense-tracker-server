@@ -55,7 +55,22 @@ async function run() {
       });
       res.send(result);
     });
-
+    // expense stats for recharts implementations
+    app.get("/expenses-stats", async (req, res) => {
+      const db = client.db("expense-tracker");
+      const stats = await db
+        .collection("expenses")
+        .aggregate([
+          {
+            $group: {
+              _id: "$category",
+              value: { $sum: { $toDouble: "$amount" } },
+            },
+          },
+        ])
+        .toArray();
+      res.send(stats);
+    });
     await client.db("admin").command({ ping: 1 });
     console.log("Connected to MongoDB!");
   } finally {
@@ -68,8 +83,6 @@ run().catch(console.dir);
 app.get("/", (req, res) => {
   res.send("Server is running fine!");
 });
-
-
 
 if (process.env.NODE_ENV !== "production") {
   app.listen(port, () => {
